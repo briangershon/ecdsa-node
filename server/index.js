@@ -1,4 +1,12 @@
 const express = require("express");
+const { recoverPublicKey } = require("ethereum-cryptography/secp256k1");
+const {
+  hexToBytes,
+  toHex,
+  utf8ToBytes,
+} = require("ethereum-cryptography/utils");
+const { keccak256 } = require("ethereum-cryptography/keccak");
+
 const app = express();
 const cors = require("cors");
 const port = 3042;
@@ -19,7 +27,20 @@ app.get("/balance/:address", (req, res) => {
 });
 
 app.post("/send", (req, res) => {
-  const { sender, recipient, amount } = req.body;
+  const { sender, recipient, amount, signature, recovery } = req.body;
+
+  // ensure valid signature of sender
+  const messageHash = keccak256(utf8ToBytes(sender + recipient + amount));
+  const signatureBytes = hexToBytes(signature);
+  const recoveredPublicKey = recoverPublicKey(
+    messageHash,
+    signatureBytes,
+    recovery
+  );
+  if (toHex(recoveredPublicKey).toString() !== sender) {
+    console.log("INVALID signature, will not transfer");
+    return;
+  }
 
   setInitialBalance(sender);
   setInitialBalance(recipient);
