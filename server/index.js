@@ -46,7 +46,11 @@ app.post("/send", (req, res) => {
     recovery
   );
   if (toHex(recoveredPublicKey).toString() !== sender) {
-    res.status(400).send({ message: "Invalid signature, unable to transfer!" });
+    res
+      .status(400)
+      .send({
+        message: "Sender is not the owner of the account, unable to transfer!",
+      });
     return;
   }
 
