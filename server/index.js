@@ -27,10 +27,18 @@ app.get("/balance/:address", (req, res) => {
 });
 
 app.post("/send", (req, res) => {
-  const { sender, recipient, amount, signature, recovery } = req.body;
+  const { sender, recipient, amount, signature, recovery, timestamp } =
+    req.body;
+
+  if (balances[recipient] === undefined) {
+    res.status(400).send({ message: "Invalid recipient, unable to transfer!" });
+    return;
+  }
 
   // ensure valid signature of sender
-  const messageHash = keccak256(utf8ToBytes(sender + recipient + amount));
+  const messageHash = keccak256(
+    utf8ToBytes(sender + recipient + amount + timestamp.toString())
+  );
   const signatureBytes = hexToBytes(signature);
   const recoveredPublicKey = recoverPublicKey(
     messageHash,
@@ -38,8 +46,16 @@ app.post("/send", (req, res) => {
     recovery
   );
   if (toHex(recoveredPublicKey).toString() !== sender) {
-    console.log("INVALID signature, will not transfer");
+    res.status(400).send({ message: "Invalid signature, unable to transfer!" });
     return;
+  }
+
+  const expireTime = timestamp + 5000;
+  const now = new Date().getTime();
+  if (now > expireTime) {
+    res
+      .status(400)
+      .send({ message: "Transaction has expired, unable to transfer!" });
   }
 
   setInitialBalance(sender);

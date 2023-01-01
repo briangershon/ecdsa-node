@@ -15,8 +15,12 @@ function Transfer({ address, setBalance, privateKey, setPrivateKey }) {
 
     const address = toHex(getPublicKey(privateKey));
 
+    const timestamp = new Date().getTime();
+
     const messageHash = toHex(
-      keccak256(utf8ToBytes(address + recipient + sendAmount))
+      keccak256(
+        utf8ToBytes(address + recipient + sendAmount + timestamp.toString())
+      )
     );
     const [signature, recovery] = await sign(messageHash, privateKey, {
       recovered: true,
@@ -31,6 +35,7 @@ function Transfer({ address, setBalance, privateKey, setPrivateKey }) {
         recipient,
         signature: toHex(signature),
         recovery,
+        timestamp,
       });
       setBalance(balance);
     } catch (ex) {
